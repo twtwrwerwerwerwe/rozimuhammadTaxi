@@ -12,7 +12,10 @@ api_hash = 'fe94ef46addc1b6b8253d5448e8511f0'
 client = TelegramClient('taxi_session', api_id, api_hash)
 
 # E’lonlar yuboriladigan kanal/guruh
-TARGET_CHAT = 'https://t.me/+BFl15wH-PAswZTYy'
+TARGET_CHATS = [
+    'https://t.me/+BFl15wH-PAswZTYy',   # 1-guruh
+    'https://t.me/+wsoP192AA5w1ZWIy',   # 2-guruh (xohlagancha qo‘shsa bo‘ladi)
+]
 
 # =================== KALIT SO'ZLAR ===================
 KEYWORDS = [
@@ -135,8 +138,10 @@ async def handler(event):
         )
 
         # Yuborish
-        await client.send_message(TARGET_CHAT, message_text, parse_mode='html')
-        print(f"✅ Yuborildi: {text[:50]}...")
+        for chat_link in TARGET_CHATS:
+            await client.send_message(chat_link, message_text, parse_mode='html')
+            print(f"📨 Yuborildi → {chat_link}")
+
 
     except Exception as e:
         print("❌ Xatolik:", e)
