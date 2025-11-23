@@ -12,7 +12,7 @@ api_hash = 'fe94ef46addc1b6b8253d5448e8511f0'
 client = TelegramClient('taxi_session', api_id, api_hash)
 
 # E’lonlar yuboriladigan kanal/guruh
-TARGET_CHAT = 'https://t.me/+BFl15wH-PAswZTYy'
+TARGET_CHAT = 'https://t.me/+BFl15wH-PAswZTYy, https://t.me/+PbKpRHp9M3kwZjBi'
 
 # =================== KALIT SO'ZLAR ===================
 KEYWORDS = [
