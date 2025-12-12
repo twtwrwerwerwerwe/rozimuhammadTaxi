@@ -8,11 +8,11 @@ api_hash = 'fe94ef46addc1b6b8253d5448e8511f0'
 
 client = TelegramClient('taxi_session', api_id, api_hash)
 
-# ============= FILTRLANMAYDIGAN GURUHLAR (ID bilan) =============
-# ❗ BU YERGA FILTRLANMAYDIGAN GURUH ID-LARINI QO‘YASIZ
+# ============= FILTRLANMAYDIGAN GURUHLAR =============
+# ❗ BU YERGA FAQAT FILTR YO'Q BO'LADIGAN GURUH ID-LARINI YOZASIZ
 SAFE_CHAT_IDS = {
-    -1003398571650,   # 1-guruh ID
-    -1002963614686,   # 2-guruh ID
+    -1003398571650,
+    -1002963614686,
 }
 
 # ============= XABAR YUBORILADIGAN GURUHLAR =============
@@ -80,21 +80,19 @@ def normalize_phone(raw):
 @client.on(events.NewMessage(incoming=True))
 async def handler(event):
     try:
-        if not isinstance(event.peer_id, (PeerChannel, PeerChat)):
-            return
-
-        chat = await event.get_chat()
-        chat_id = chat.id
+        # Chat IDni TO‘G‘RI OLAMIZ (asosiy muammo shu edi!)
+        chat_id = event.chat_id
         text = event.raw_text
 
-        # === 1) SAFE CHAT bo‘lsa → filtr yo‘q
+        # === 1) Agar guruh SAFE bo‘lsa → filtr yo‘q
         if chat_id not in SAFE_CHAT_IDS:
-            # === 2) Qolgan guruhlar → keyword bo‘lishi shart
+            # === Qolgan guruhlar → keyword bo‘lishi shart
             if not text or not KEYWORDS_RE.search(text):
                 return
 
         # sender
         sender = await event.get_sender()
+        chat = await event.get_chat()
 
         group_name = getattr(chat, 'title', 'Noma\'lum guruh')
         if getattr(chat, 'username', None):
