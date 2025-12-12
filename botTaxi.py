@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import re
 import asyncio
 from telethon import TelegramClient, events
@@ -8,14 +7,17 @@ from telethon.tl.types import PeerChannel, PeerChat
 api_id = 28023612
 api_hash = 'fe94ef46addc1b6b8253d5448e8511f0'
 
-# Telegram session nomi
 client = TelegramClient('taxi_session', api_id, api_hash)
 
-# E’lonlar yuboriladigan kanal/guruh
-TARGET_CHATS = [
-    'https://t.me/+BFl15wH-PAswZTYy',   # 1-guruh
-    'https://t.me/+wsoP192AA5w1ZWIy',   # 2-guruh (xohlagancha qo‘shsa bo‘ladi)
+# =================== FILTRDAN CHIQARILGAN GURUHLAR ===================
+# Bu guruhlardan kelgan xabarlar filtrlanmaydi!
+SAFE_CHATS = [
+    'https://t.me/+BFl15wH-PAswZTYy',
+    'https://t.me/+wsoP192AA5w1ZWIy',
 ]
+
+# Agar xabar shu guruhlardan kelsa → darhol yuboriladi
+SAFE_CHAT_IDS = set()
 
 # =================== KALIT SO'ZLAR ===================
 KEYWORDS = [
@@ -60,10 +62,11 @@ KEYWORDS = [
 
 KEYWORDS_RE = re.compile("|".join(re.escape(k) for k in KEYWORDS), re.IGNORECASE)
 
-# Telefon raqam regex
+# Telefon raqam
 PHONE_RE = re.compile(r'(\+?998[\d\-\s\(\)]{9,15}|9\d{8})')
 
-# =================== FUNKSIYALAR ===================
+
+# =================== PHONE NORMALIZER ===================
 def normalize_phone(raw):
     digits = re.sub(r'\D', '', raw)
     if digits.startswith('998') and len(digits) >= 12:
@@ -76,57 +79,71 @@ def normalize_phone(raw):
         return '+998' + digits[-9:]
     return None
 
+
+# =================== SAFE CHAT ID OLIB KELISH ===================
+async def resolve_safe_chat_ids():
+    print("✔ Filtrlanmaydigan guruh IDlari olinmoqda...")
+    for link in SAFE_CHATS:
+        try:
+            entity = await client.get_entity(link)
+            SAFE_CHAT_IDS.add(entity.id)
+            print(f"   ➜ {link} → ID: {entity.id}")
+        except:
+            print(f"⚠ Xatolik: {link} ga kira olmadim")
+
+
 # =================== HANDLER ===================
 @client.on(events.NewMessage(incoming=True))
 async def handler(event):
     try:
-        # Faqat guruh/kanal xabarlarini tekshir
         if not isinstance(event.peer_id, (PeerChannel, PeerChat)):
             return
 
-        text = event.raw_text
-        if not text or not KEYWORDS_RE.search(text):
-            return
+        chat = await event.get_chat()
 
-        # Chat va sender ma'lumotlarini olish
-        chat_task = asyncio.create_task(event.get_chat())
-        sender_task = asyncio.create_task(event.get_sender())
-        chat, sender = await asyncio.gather(chat_task, sender_task)
+        # === 1) SAFE CHAT – FILTR YO'Q ===
+        if chat.id in SAFE_CHAT_IDS:
+            text = event.raw_text
+        else:
+            # === 2) Oddiy guruhlar – faqat KEYWORDS bo'lsa ===
+            text = event.raw_text
+            if not text or not KEYWORDS_RE.search(text):
+                return
 
-        # Guruh nomi va link
+        sender = await event.get_sender()
+
+        # Guruh info
         group_name = getattr(chat, 'title', 'Noma\'lum guruh')
+        
         if getattr(chat, 'username', None):
             group_link = f"https://t.me/{chat.username}/{event.id}"
         else:
             group_link = group_name
 
-        # Habar egasi
+        # Foydalanuvchi
         username = getattr(sender, 'username', None)
-        if username:
-            haber_egasi = f"@{username}"
-        else:
-            haber_egasi = "Berkitilgan"
+        haber_egasi = f"@{username}" if username else "Berkitilgan"
 
-        # Maxsus profil link
         sender_id = getattr(sender, 'id', None)
         if sender_id:
             profile_link_html = f"<a href='tg://user?id={sender_id}'>Profilga o‘tish</a>"
         else:
             profile_link_html = "Berkitilgan"
 
-        # Telefon raqam
+        # Telefon
         phone = getattr(sender, 'phone', None)
         if phone:
             phone = normalize_phone(phone)
         else:
-            # Matndan qidiring
+            phone = None
             for m in PHONE_RE.finditer(text):
                 phone = normalize_phone(m.group(0))
                 if phone:
                     break
+
         phone_display = phone if phone else "Raqam berkitilgan"
 
-        # Xabarni shakllantirish
+        # Yakuniy matn
         message_text = (
             f"🚖 <b>Xabar topildi!</b>\n\n"
             f"📄 <b>Matn:</b>\n{text}\n\n"
@@ -138,15 +155,19 @@ async def handler(event):
         )
 
         # Yuborish
-        for chat_link in TARGET_CHATS:
-            await client.send_message(chat_link, message_text, parse_mode='html')
-            print(f"📨 Yuborildi → {chat_link}")
-
+        for link in SAFE_CHATS:
+            await client.send_message(link, message_text, parse_mode='html')
+            print(f"📨 Yuborildi → {link}")
 
     except Exception as e:
         print("❌ Xatolik:", e)
 
+
 # =================== START ===================
-print("🚕 Taxi bot ishga tushdi... Faqat yangi xabarlar tez tekshiriladi ⚡")
+async def main():
+    await resolve_safe_chat_ids()
+    print("🚕 Taxi bot ishga tushdi... ⚡")
+    await client.run_until_disconnected()
+
 client.start()
-client.run_until_disconnected()
+asyncio.run(main())
