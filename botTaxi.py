@@ -8,11 +8,11 @@ api_hash = 'fe94ef46addc1b6b8253d5448e8511f0'
 
 client = TelegramClient('taxi_session', api_id, api_hash)
 
-# ============= FILTRLANMAYDIGAN GURUHLAR =============
-# ❗ BU YERGA FAQAT FILTR YO'Q BO'LADIGAN GURUH ID-LARINI YOZASIZ
-SAFE_CHAT_IDS = {
-    -1003398571650,
-    -1002963614686,
+# ============= UMUMAN KO‘RILMAYDIGAN (SKIP) GURUHLAR =============
+# ❗ Bu guruhlardan kelgan xabarni bot hech narsa qilmaydi
+SKIP_CHAT_IDS = {
+    -1003398571650,   # 1-guruh
+    -1002963614686,   # 2-guruh
 }
 
 # ============= XABAR YUBORILADIGAN GURUHLAR =============
@@ -63,7 +63,6 @@ KEYWORDS = [
 ]
 
 KEYWORDS_RE = re.compile("|".join(re.escape(k) for k in KEYWORDS), re.IGNORECASE)
-
 PHONE_RE = re.compile(r'(\+?998[\d\-\s\(\)]{9,15}|9\d{8})')
 
 def normalize_phone(raw):
@@ -80,17 +79,23 @@ def normalize_phone(raw):
 @client.on(events.NewMessage(incoming=True))
 async def handler(event):
     try:
-        # Chat IDni TO‘G‘RI OLAMIZ (asosiy muammo shu edi!)
         chat_id = event.chat_id
-        text = event.raw_text
+        text = event.raw_text or ""
 
-        # === 1) Agar guruh SAFE bo‘lsa → filtr yo‘q
-        if chat_id not in SAFE_CHAT_IDS:
-            # === Qolgan guruhlar → keyword bo‘lishi shart
-            if not text or not KEYWORDS_RE.search(text):
-                return
+        # ==============================
+        # 1) AGAR XABAR SKIP GURUHIDAN KELGAN BO'LSA → UMUMAN HECH NARSA QILINMAYDI
+        # ==============================
+        if chat_id in SKIP_CHAT_IDS:
+            print(f"⏭ Skip qildi (guruh ID: {chat_id})")
+            return
 
-        # sender
+        # ==============================
+        # 2) QOLGAN GURUHLARDA — KEYWORD YO'Q BO'LSA → TASHLAB KET
+        # ==============================
+        if not KEYWORDS_RE.search(text):
+            return
+
+        # Davom etadi faqat keyword bo'lsa
         sender = await event.get_sender()
         chat = await event.get_chat()
 
@@ -104,7 +109,10 @@ async def handler(event):
         haber_egasi = f"@{username}" if username else "Berkitilgan"
 
         sender_id = getattr(sender, 'id', None)
-        profile_link = f"<a href='tg://user?id={sender_id}'>Profil</a>" if sender_id else "Berkitilgan"
+        profile_link = (
+            f"<a href='tg://user?id={sender_id}'>Profil</a>"
+            if sender_id else "Berkitilgan"
+        )
 
         phone = getattr(sender, 'phone', None)
         phone = normalize_phone(phone) if phone else None
@@ -114,6 +122,7 @@ async def handler(event):
                 phone = normalize_phone(m.group(0))
                 if phone:
                     break
+
         phone = phone or "Raqam berkitilgan"
 
         msg = (
