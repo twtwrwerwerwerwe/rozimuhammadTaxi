@@ -1,6 +1,5 @@
 import re
 from telethon import TelegramClient, events
-from telethon.tl.types import PeerChat, PeerChannel
 
 # ================= TELEGRAM =================
 api_id = 28023612
@@ -8,16 +7,16 @@ api_hash = 'fe94ef46addc1b6b8253d5448e8511f0'
 
 client = TelegramClient('taxi_session', api_id, api_hash)
 
-# ============= UMUMAN KO‘RILMAYDIGAN (SKIP) GURUHLAR =============
+# ============= SKIP GURUHLAR =============
 SKIP_CHAT_IDS = {
     -1003398571650,
     -1002963614686,
 }
 
-# ============= XABAR YUBORILADIGAN GURUHLAR =============
+# ============= XABAR YUBORILADIGAN GURUHLAR (ID bilan) =============
 TARGET_CHATS = [
-    'https://t.me/+BFl15wH-PAswZTYy',
-    'https://t.me/+wsoP192AA5w1ZWIy',
+    -1001234567890,   # 1-guruh ID
+    -1009876543210,   # 2-guruh ID
 ]
 
 # ============= KEYWORDS =============
@@ -62,16 +61,15 @@ KEYWORDS = [
 ]
 
 KEYWORDS_RE = re.compile("|".join(re.escape(k) for k in KEYWORDS), re.IGNORECASE)
-PHONE_RE = re.compile(r'(\+?998[\d\-\s\(\)]{9,15}|9\d{8})')
 
 def normalize_phone(raw):
+    if not raw:
+        return None
     digits = re.sub(r'\D', '', raw)
     if digits.startswith('998'):
         return '+' + digits[:12]
     if len(digits) == 9 and digits.startswith('9'):
         return '+998' + digits
-    if len(digits) >= 9:
-        return '+998' + digits[-9:]
     return None
 
 # ================= HANDLER =================
@@ -88,22 +86,24 @@ async def handler(event):
             return
 
         sender = await event.get_sender()
+        if not sender:
+            return
+
         chat = await event.get_chat()
 
-        group_name = getattr(chat, 'title', 'Noma\'lum guruh')
+        # ===== GURUH NOMI + BOSILADIGAN LINK =====
+        group_name = getattr(chat, 'title', 'Nomaʼlum guruh')
         if getattr(chat, 'username', None):
             group_link = f"https://t.me/{chat.username}/{event.id}"
+            group_text = f"<a href='{group_link}'>{group_name}</a>"
         else:
-            group_link = group_name
+            group_text = group_name
 
-        # =================== HABAR EGASI (TO‘G‘RILANDI) ===================
+        # ===== HABAR EGASI =====
         username = getattr(sender, 'username', None)
-        if username:
-            haber_egasi = f"@{username}"
-        else:
-            haber_egasi = sender.first_name if sender.first_name else "Berkitilgan"
+        haber_egasi = f"@{username}" if username else "Berkitilgan"
 
-        # =================== PROFIL LINK (TO‘G‘RILANDI) ===================
+        # ===== PROFIL LINK (O‘ZGARMADI) =====
         sender_id = getattr(sender, 'id', None)
         if username:
             profile_link = f"<a href='https://t.me/{username}'>Profil</a>"
@@ -112,31 +112,18 @@ async def handler(event):
         else:
             profile_link = "Berkitilgan"
 
-        # =================== TELEFON (TO‘G‘RILANDI) ===================
-        phone = None
-
-        # avval matndan
-        for m in PHONE_RE.finditer(text):
-            phone = normalize_phone(m.group(0))
-            if phone:
-                break
-
-        # keyin profildan
-        if not phone:
-            raw_phone = getattr(sender, 'phone', None)
-            if raw_phone:
-                phone = normalize_phone(raw_phone)
-
+        # ===== TELEFON (FAQAT PROFILDAN) =====
+        phone = normalize_phone(getattr(sender, 'phone', None))
         phone = phone if phone else "Raqam berkitilgan"
 
+        # =================== YAXSHILANGAN MSG ===================
         msg = (
             f"🚖 <b>Xabar topildi!</b>\n\n"
             f"📄 <b>Matn:</b>\n{text}\n\n"
-            f"📍 <b>Guruh:</b> {group_name} — {group_link}\n\n"
+            f"📍 <b>Guruh:</b> {group_text}\n\n"
             f"👤 <b>Habar egasi:</b> {haber_egasi}\n\n"
             f"📞 <b>Raqam:</b> {phone}\n\n"
-            f"🔗 <b>Profil:</b> {profile_link}\n\n"
-            f"🔔 Yangi e'lonlar uchun kuzatib boring!"
+            f"🔗 <b>Profil:</b> {profile_link}"
         )
 
         for tg in TARGET_CHATS:
