@@ -1,5 +1,7 @@
 import re
 from telethon import TelegramClient, events
+from telethon.errors import FloodWaitError
+import asyncio
 
 # ================= TELEGRAM =================
 api_id = 28023612
@@ -13,10 +15,10 @@ SKIP_CHAT_IDS = {
     -1002963614686,
 }
 
-# ============= XABAR YUBORILADIGAN GURUHLAR (ID bilan) =============
+# ============= XABAR YUBORILADIGAN GURUHLAR (LINK BILAN) =============
 TARGET_CHATS = [
-    -1001234567890,   # 1-guruh ID
-    -1009876543210,   # 2-guruh ID
+    'https://t.me/+BFl15wH-PAswZTYy',
+    'https://t.me/+wsoP192AA5w1ZWIy',
 ]
 
 # ============= KEYWORDS =============
@@ -79,9 +81,11 @@ async def handler(event):
         chat_id = event.chat_id
         text = event.raw_text or ""
 
+        # skip guruhlar
         if chat_id in SKIP_CHAT_IDS:
             return
 
+        # keyword bo‘lmasa chiqib ket
         if not KEYWORDS_RE.search(text):
             return
 
@@ -103,7 +107,7 @@ async def handler(event):
         username = getattr(sender, 'username', None)
         haber_egasi = f"@{username}" if username else "Berkitilgan"
 
-        # ===== PROFIL LINK (O‘ZGARMADI) =====
+        # ===== PROFIL LINK =====
         sender_id = getattr(sender, 'id', None)
         if username:
             profile_link = f"<a href='https://t.me/{username}'>Profil</a>"
@@ -116,7 +120,7 @@ async def handler(event):
         phone = normalize_phone(getattr(sender, 'phone', None))
         phone = phone if phone else "Raqam berkitilgan"
 
-        # =================== YAXSHILANGAN MSG ===================
+        # ===== XABAR =====
         msg = (
             f"🚖 <b>Xabar topildi!</b>\n\n"
             f"📄 <b>Matn:</b>\n{text}\n\n"
@@ -126,8 +130,13 @@ async def handler(event):
             f"🔗 <b>Profil:</b> {profile_link}"
         )
 
+        # ===== YUBORISH (FloodWait himoyasi bilan) =====
         for tg in TARGET_CHATS:
-            await client.send_message(tg, msg, parse_mode='html')
+            try:
+                await client.send_message(tg, msg, parse_mode='html')
+            except FloodWaitError as e:
+                await asyncio.sleep(e.seconds)
+                await client.send_message(tg, msg, parse_mode='html')
 
     except Exception as e:
         print("❌ Xatolik:", e)
