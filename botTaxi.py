@@ -9,10 +9,9 @@ api_hash = 'fe94ef46addc1b6b8253d5448e8511f0'
 client = TelegramClient('taxi_session', api_id, api_hash)
 
 # ============= UMUMAN KO‘RILMAYDIGAN (SKIP) GURUHLAR =============
-# ❗ Bu guruhlardan kelgan xabarni bot hech narsa qilmaydi
 SKIP_CHAT_IDS = {
-    -1003398571650,   # 1-guruh
-    -1002963614686,   # 2-guruh
+    -1003398571650,
+    -1002963614686,
 }
 
 # ============= XABAR YUBORILADIGAN GURUHLAR =============
@@ -82,20 +81,12 @@ async def handler(event):
         chat_id = event.chat_id
         text = event.raw_text or ""
 
-        # ==============================
-        # 1) AGAR XABAR SKIP GURUHIDAN KELGAN BO'LSA → UMUMAN HECH NARSA QILINMAYDI
-        # ==============================
         if chat_id in SKIP_CHAT_IDS:
-            print(f"⏭ Skip qildi (guruh ID: {chat_id})")
             return
 
-        # ==============================
-        # 2) QOLGAN GURUHLARDA — KEYWORD YO'Q BO'LSA → TASHLAB KET
-        # ==============================
         if not KEYWORDS_RE.search(text):
             return
 
-        # Davom etadi faqat keyword bo'lsa
         sender = await event.get_sender()
         chat = await event.get_chat()
 
@@ -105,25 +96,38 @@ async def handler(event):
         else:
             group_link = group_name
 
+        # =================== HABAR EGASI (TO‘G‘RILANDI) ===================
         username = getattr(sender, 'username', None)
-        haber_egasi = f"@{username}" if username else "Berkitilgan"
+        if username:
+            haber_egasi = f"@{username}"
+        else:
+            haber_egasi = sender.first_name if sender.first_name else "Berkitilgan"
 
+        # =================== PROFIL LINK (TO‘G‘RILANDI) ===================
         sender_id = getattr(sender, 'id', None)
-        profile_link = (
-            f"<a href='tg://user?id={sender_id}'>Profil</a>"
-            if sender_id else "Berkitilgan"
-        )
+        if username:
+            profile_link = f"<a href='https://t.me/{username}'>Profil</a>"
+        elif sender_id:
+            profile_link = f"<a href='tg://user?id={sender_id}'>Profil</a>"
+        else:
+            profile_link = "Berkitilgan"
 
-        phone = getattr(sender, 'phone', None)
-        phone = normalize_phone(phone) if phone else None
+        # =================== TELEFON (TO‘G‘RILANDI) ===================
+        phone = None
 
+        # avval matndan
+        for m in PHONE_RE.finditer(text):
+            phone = normalize_phone(m.group(0))
+            if phone:
+                break
+
+        # keyin profildan
         if not phone:
-            for m in PHONE_RE.finditer(text):
-                phone = normalize_phone(m.group(0))
-                if phone:
-                    break
+            raw_phone = getattr(sender, 'phone', None)
+            if raw_phone:
+                phone = normalize_phone(raw_phone)
 
-        phone = phone or "Raqam berkitilgan"
+        phone = phone if phone else "Raqam berkitilgan"
 
         msg = (
             f"🚖 <b>Xabar topildi!</b>\n\n"
@@ -137,7 +141,6 @@ async def handler(event):
 
         for tg in TARGET_CHATS:
             await client.send_message(tg, msg, parse_mode='html')
-            print(f"📨 Yuborildi → {tg}")
 
     except Exception as e:
         print("❌ Xatolik:", e)
