@@ -1,24 +1,32 @@
+# -*- coding: utf-8 -*-
 import re
+import asyncio
 from telethon import TelegramClient, events
 from telethon.errors import FloodWaitError
-import asyncio
 
 # ================= TELEGRAM =================
 api_id = 28023612
 api_hash = 'fe94ef46addc1b6b8253d5448e8511f0'
 
-client = TelegramClient('taxi_session', api_id, api_hash)
+client = TelegramClient(
+    'taxi_session',
+    api_id,
+    api_hash,
+    device_model="Railway",
+    system_version="Linux",
+    app_version="1.0"
+)
 
-# ============= SKIP GURUHLAR =============
+# ============= SKIP GURUHLAR (FILTRLANMAYDI) =============
 SKIP_CHAT_IDS = {
     -1003398571650,
     -1002963614686,
 }
 
-# ============= XABAR YUBORILADIGAN GURUHLAR (LINK BILAN) =============
-TARGET_CHATS = [
-    'https://t.me/+BFl15wH-PAswZTYy',
-    'https://t.me/+wsoP192AA5w1ZWIy',
+# ============= XABAR YUBORILADIGAN YOPIQ GURUHLAR (FAQAT ID) =============
+TARGET_CHAT_IDS = [
+    -1003398571650,
+    -1002963614686,  # <-- 2-guruh ID
 ]
 
 # ============= KEYWORDS =============
@@ -68,15 +76,16 @@ KEYWORDS = [
 
 KEYWORDS_RE = re.compile("|".join(re.escape(k) for k in KEYWORDS), re.IGNORECASE)
 
+# ============= TELEFON NORMALIZE =============
 def normalize_phone(raw):
     if not raw:
-        return None
+        return "Berkitilgan"
     digits = re.sub(r'\D', '', raw)
     if digits.startswith('998'):
         return '+' + digits[:12]
-    if len(digits) == 9 and digits.startswith('9'):
+    if len(digits) == 9:
         return '+998' + digits
-    return None
+    return "Berkitilgan"
 
 # ================= HANDLER =================
 @client.on(events.NewMessage(incoming=True))
@@ -89,62 +98,56 @@ async def handler(event):
         if chat_id in SKIP_CHAT_IDS:
             return
 
-        # keyword bo‘lmasa chiqib ket
+        # keyword yo‘q bo‘lsa chiqib ket
         if not KEYWORDS_RE.search(text):
             return
 
         sender = await event.get_sender()
-        if not sender:
-            return
-
         chat = await event.get_chat()
 
-        # ===== GURUH NOMI + BOSILADIGAN LINK =====
-        group_name = getattr(chat, 'title', 'Nomaʼlum guruh')
-        if getattr(chat, 'username', None):
-            group_link = f"https://t.me/{chat.username}/{event.id}"
-            group_text = f"<a href='{group_link}'>{group_name}</a>"
-        else:
-            group_text = group_name
+        # ===== GURUH =====
+        group_name = getattr(chat, 'title', 'Nomaʼlum')
 
-        # ===== HABAR EGASI =====
+        # ===== XABAR EGASI =====
         username = getattr(sender, 'username', None)
+        sender_id = getattr(sender, 'id', None)
+
         haber_egasi = f"@{username}" if username else "Berkitilgan"
 
-        # ===== PROFIL LINK =====
-        sender_id = getattr(sender, 'id', None)
         if username:
             profile_link = f"<a href='https://t.me/{username}'>Profil</a>"
-        elif sender_id:
-            profile_link = f"<a href='tg://user?id={sender_id}'>Profil</a>"
         else:
-            profile_link = "Berkitilgan"
+            profile_link = f"<a href='tg://user?id={sender_id}'>Profil</a>"
 
-        # ===== TELEFON (FAQAT PROFILDAN) =====
         phone = normalize_phone(getattr(sender, 'phone', None))
-        phone = phone if phone else "Raqam berkitilgan"
 
         # ===== XABAR =====
         msg = (
-            f"🚖 <b>Xabar topildi!</b>\n\n"
+            f"🚖 <b>Taxi eʼlon topildi!</b>\n\n"
             f"📄 <b>Matn:</b>\n{text}\n\n"
-            f"📍 <b>Guruh:</b> {group_text}\n\n"
-            f"👤 <b>Habar egasi:</b> {haber_egasi}\n\n"
-            f"📞 <b>Raqam:</b> {phone}\n\n"
+            f"📍 <b>Guruh:</b> {group_name}\n\n"
+            f"👤 <b>Habar egasi:</b> {haber_egasi}\n"
+            f"📞 <b>Telefon:</b> {phone}\n"
             f"🔗 <b>Profil:</b> {profile_link}"
         )
 
-        # ===== YUBORISH (FloodWait himoyasi bilan) =====
-        for tg in TARGET_CHATS:
+        # ===== YUBORISH (LIMITGA TUSHMAYDIGAN) =====
+        for tg_id in TARGET_CHAT_IDS:
             try:
-                await client.send_message(tg, msg, parse_mode='html')
+                await client.send_message(tg_id, msg, parse_mode='html')
+                await asyncio.sleep(2)  # SPAM HIMOYASI
             except FloodWaitError as e:
+                print(f"⏳ FloodWait: {e.seconds} soniya")
                 await asyncio.sleep(e.seconds)
-                await client.send_message(tg, msg, parse_mode='html')
+                await client.send_message(tg_id, msg, parse_mode='html')
 
     except Exception as e:
         print("❌ Xatolik:", e)
 
 # ================= START =================
-client.start()
-client.run_until_disconnected()
+async def main():
+    print("🚕 Taxi filter bot ishga tushdi...")
+    await client.start()
+    await client.run_until_disconnected()
+
+asyncio.run(main())
