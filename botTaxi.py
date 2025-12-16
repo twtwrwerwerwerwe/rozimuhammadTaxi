@@ -2,6 +2,7 @@ import re
 import asyncio
 from telethon import TelegramClient, events
 from telethon.tl.types import PeerChannel, PeerChat
+from telethon import Button
 
 # =================== TELEGRAM API ===================
 api_id = 28023612
@@ -87,17 +88,6 @@ KEYWORDS = [
 
 KEYWORDS_RE = re.compile("|".join(re.escape(k) for k in KEYWORDS), re.IGNORECASE)
 
-# =================== TELEFON REGEX ===================
-PHONE_RE = re.compile(r'(\+?998[\d\-\s\(\)]{9,15}|9\d{8})')
-
-def normalize_phone(raw):
-    digits = re.sub(r'\D', '', raw)
-    if digits.startswith('998') and len(digits) >= 12:
-        return '+' + digits[:12]
-    if len(digits) == 9:
-        return '+998' + digits
-    return None
-
 # =================== HANDLER ===================
 @client.on(events.NewMessage(incoming=True))
 async def handler(event):
@@ -126,28 +116,27 @@ async def handler(event):
         else:
             group_display = group_name
 
-        # =================== EGASI ===================
+        # =================== USERNAME / ID ===================
         username = getattr(sender, 'username', None)
-        owner_display = f"@{username}" if username else "Berkitilgan"
+        sender_id = sender.id if sender else None
 
-        # =================== PROFIL LINK ===================
-        sender_id = getattr(sender, 'id', None)
-        profile_link = (
-            f"<a href='tg://user?id={sender_id}'>Profilga o‘tish</a>"
-            if sender_id else "Berkitilgan"
-        )
-
-        # =================== TELEFON ===================
+        # =================== TELEFON (FAQAT PROFILDAN) ===================
         phone = getattr(sender, 'phone', None)
-        phone = normalize_phone(phone) if phone else None
+        phone_display = f"+{phone}" if phone else "Berkitilgan"
 
-        if not phone:
-            for m in PHONE_RE.finditer(text):
-                phone = normalize_phone(m.group(0))
-                if phone:
-                    break
+        # =================== TUGMA ===================
+        buttons = []
 
-        phone_display = phone if phone else "Berkitilgan"
+        if username:
+            buttons.append(
+                [Button.url("💬 Xabar yozish", f"https://t.me/{username}")]
+            )
+            owner_display = f"@{username}"
+        else:
+            buttons.append(
+                [Button.url("👤 Profilni ochish", f"tg://user?id={sender_id}")]
+            )
+            owner_display = "Username yo‘q"
 
         # =================== YUBORILADIGAN XABAR ===================
         message_text = (
@@ -155,12 +144,16 @@ async def handler(event):
             f"📝 <b>Matn:</b>\n{text}\n\n"
             f"📍 <b>Guruh:</b> {group_display}\n\n"
             f"👤 <b>Egasi:</b> {owner_display}\n\n"
-            f"📞 <b>Telefon:</b> {phone_display}\n\n"
-            f"🔗 <b>Profilga o'tish:</b> {profile_link}"
+            f"📞 <b>Telefon:</b> {phone_display}"
         )
 
         for target_id in TARGET_CHAT_IDS:
-            await client.send_message(target_id, message_text, parse_mode='html')
+            await client.send_message(
+                target_id,
+                message_text,
+                buttons=buttons,
+                parse_mode='html'
+            )
             print(f"📨 Yuborildi → {target_id}")
 
     except Exception as e:
@@ -170,3 +163,4 @@ async def handler(event):
 print("🚕 Taxi bot ishga tushdi...")
 client.start()
 client.run_until_disconnected()
+
