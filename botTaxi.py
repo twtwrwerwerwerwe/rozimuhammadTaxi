@@ -2,7 +2,6 @@ import re
 import asyncio
 from telethon import TelegramClient, events
 from telethon.tl.types import PeerChannel, PeerChat
-from telethon import Button
 
 # =================== TELEGRAM API ===================
 api_id = 28023612
@@ -38,7 +37,7 @@ KEYWORDS = [
     'towga 4kishi', 'toshkentga 4kishi', "farg'onaga 4kishi", 'rishtonga 4kishi', '4kishi bor',
     'машина бор','одам бор эди','одам бор экан','одам бор 1','одам бор 2','одам бор 3','одам бор 4',
     'битта одам бор','иккита одам бор','учта одам бор','комплек одам бор','1та одам бор','2та одам бор',
-    '3та одам бор','4та одам бор', 'toshkentdan bir kishi', 'rishtonga bir kishi', '1 ta qiz bor', 'ayol kishi bor mashina sorashyabdi'
+    '3та одам бор','4та одам бор', 'toshkentdan bir kishi', 'rishtonga bir kishi', '1 ta qiz bor', 'ayol kishi bor mashina sorashyabdi',
     'Chirchiqdan 1 kishi', 'Yangiyuldan 1 kishi', 'Zangiotadan 1 kishi', 'Qibraydan 1 kishi', '1 kishi bor',
     '2-ta odam bor', '2-kishi bor', '3-ta odam bor', '3-kishi bor', '4-ta odam bor', '4-kishi bor',
     '2-ta kishi bor', '3-ta kishi bor', '4-ta kishi bor', '2-ta ayolkishi bor', '3-ta ayolkishi bor', '4-ta ayolkishi bor', "odam.bor", 
@@ -88,12 +87,25 @@ KEYWORDS = [
 
 KEYWORDS_RE = re.compile("|".join(re.escape(k) for k in KEYWORDS), re.IGNORECASE)
 
+# =================== TELEFON REGEX ===================
+PHONE_RE = re.compile(r'(\+?998[\d\-\s\(\)]{9,15}|9\d{8})')
+
+def normalize_phone(raw):
+    digits = re.sub(r'\D', '', raw)
+    if digits.startswith('998') and len(digits) >= 12:
+        return '+' + digits[:12]
+    if len(digits) == 9:
+        return '+998' + digits
+    return None
+
 # =================== HANDLER ===================
 @client.on(events.NewMessage(incoming=True))
 async def handler(event):
     try:
-        if not isinstance(event.peer_id, (PeerChannel, PeerChat)):
+        # faqat guruh va kanallarni qabul qiladi
+        if not (event.is_group or event.is_channel):
             return
+
 
         chat_id = event.chat_id
         if chat_id in SKIP_CHAT_IDS:
@@ -116,27 +128,28 @@ async def handler(event):
         else:
             group_display = group_name
 
-        # =================== USERNAME / ID ===================
+        # =================== EGASI ===================
         username = getattr(sender, 'username', None)
-        sender_id = sender.id if sender else None
+        owner_display = f"@{username}" if username else "Berkitilgan"
 
-        # =================== TELEFON (FAQAT PROFILDAN) ===================
+        # =================== PROFIL LINK ===================
+        sender_id = getattr(sender, 'id', None)
+        profile_link = (
+            f"<a href='tg://user?id={sender_id}'>Profilga o‘tish</a>"
+            if sender_id else "Berkitilgan"
+        )
+
+        # =================== TELEFON ===================
         phone = getattr(sender, 'phone', None)
-        phone_display = f"+{phone}" if phone else "Berkitilgan"
+        phone = normalize_phone(phone) if phone else None
 
-        # =================== TUGMA ===================
-        buttons = []
+        if not phone:
+            for m in PHONE_RE.finditer(text):
+                phone = normalize_phone(m.group(0))
+                if phone:
+                    break
 
-        if username:
-            buttons.append(
-                [Button.url("💬 Xabar yozish", f"https://t.me/{username}")]
-            )
-            owner_display = f"@{username}"
-        else:
-            buttons.append(
-                [Button.url("👤 Profilni ochish", f"tg://user?id={sender_id}")]
-            )
-            owner_display = "Username yo‘q"
+        phone_display = phone if phone else "Berkitilgan"
 
         # =================== YUBORILADIGAN XABAR ===================
         message_text = (
@@ -144,16 +157,12 @@ async def handler(event):
             f"📝 <b>Matn:</b>\n{text}\n\n"
             f"📍 <b>Guruh:</b> {group_display}\n\n"
             f"👤 <b>Egasi:</b> {owner_display}\n\n"
-            f"📞 <b>Telefon:</b> {phone_display}"
+            f"📞 <b>Telefon:</b> {phone_display}\n\n"
+            f"🔗 <b>Profilga o'tish:</b> {profile_link}"
         )
 
         for target_id in TARGET_CHAT_IDS:
-            await client.send_message(
-                target_id,
-                message_text,
-                buttons=buttons,
-                parse_mode='html'
-            )
+            await client.send_message(target_id, message_text, parse_mode='html')
             print(f"📨 Yuborildi → {target_id}")
 
     except Exception as e:
@@ -163,4 +172,3 @@ async def handler(event):
 print("🚕 Taxi bot ishga tushdi...")
 client.start()
 client.run_until_disconnected()
-
