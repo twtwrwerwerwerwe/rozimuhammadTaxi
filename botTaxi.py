@@ -105,7 +105,7 @@ def normalize_phone(raw):
 @client.on(events.NewMessage(incoming=True))
 async def handler(event):
     try:
-        if not (event.is_group or event.is_channel):
+        if not isinstance(event.peer_id, (PeerChannel, PeerChat)):
             return
 
         chat_id = event.chat_id
