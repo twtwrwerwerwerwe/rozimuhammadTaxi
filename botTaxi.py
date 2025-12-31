@@ -5,21 +5,22 @@ from telethon import TelegramClient, events
 # =================== TELEGRAM API ===================
 api_id = 28023612
 api_hash = 'fe94ef46addc1b6b8253d5448e8511f0'
+
 client = TelegramClient('taxi_session', api_id, api_hash)
 
 # =================== SKIP CHAT ID ===================
-SKIP_CHAT_IDS = {
+SKIP_CHAT_IDS = [
     -1003398571650,
     -1002963614686
-}
+]
 
-# =================== TARGET CHAT ID =================
+# =================== TARGET CHAT ID ===================
 TARGET_CHAT_IDS = [
     -1003398571650,
     -1002963614686
 ]
 
-# =================== KEYWORDS (AS IS) ===============
+# =================== KALIT SO‘ZLAR ===================
 KEYWORDS = [
     # odam bor
     'odam bor','odambor','odam bor ekan','odam bor edi','odam borakan',
@@ -84,11 +85,11 @@ KEYWORDS = [
     'кетади', 'кетвотти', 'кетиши керак', "shopir kerak", "1kishi ayol kishili mashina kerak"
 ]
 
-# 🔥 BIR MARTA KOMPILYATSIYA (ENG MUHIM)
-KEYWORDS_RE = re.compile("|".join(KEYWORDS), re.IGNORECASE)
+KEYWORDS_RE = re.compile("|".join(re.escape(k) for k in KEYWORDS), re.IGNORECASE)
 
-# =================== PHONE REGEX ====================
+# =================== TELEFON REGEX ===================
 PHONE_RE = re.compile(r'(\+?998[\d\-\s\(\)]{9,15}|9\d{8})')
+
 
 def normalize_phone(raw):
     digits = re.sub(r'\D', '', raw)
@@ -98,70 +99,75 @@ def normalize_phone(raw):
         return '+998' + digits
     return None
 
-# =================== HANDLER ========================
+
+# =================== HANDLER ===================
 @client.on(events.NewMessage(incoming=True))
 async def handler(event):
-    # 🚀 1. ENG TEZ RETURNLAR
-    if not (event.is_group or event.is_channel):
-        return
+    try:
+        # 🔥 FAQAT SEN ULANGAN GURUH VA KANALLAR
+        if not (event.is_group or event.is_channel):
+            return
 
-    if event.chat_id in SKIP_CHAT_IDS:
-        return
+        chat_id = event.chat_id
+        if chat_id in SKIP_CHAT_IDS:
+            return
 
-    text = event.raw_text
-    if not text:
-        return
+        text = event.raw_text
+        if not text or not KEYWORDS_RE.search(text):
+            return
 
-    low = text.lower()
+        chat, sender = await asyncio.gather(
+            event.get_chat(),
+            event.get_sender()
+        )
 
-    # 🚀 2. BITTA REGEX — HAMMASI SHU YERDA
-    if not KEYWORDS_RE.search(low):
-        return
+        group_name = getattr(chat, 'title', 'Nomaʼlum guruh')
+        if getattr(chat, 'username', None):
+            group_link = f"https://t.me/{chat.username}/{event.id}"
+            group_display = f"<a href='{group_link}'>{group_name}</a>"
+        else:
+            group_display = group_name
 
-    # 🚀 3. FAQAT SHU YERDAN KEYIN await
-    sender = await event.get_sender()
-    chat = await event.get_chat()
+        username = getattr(sender, 'username', None)
+        owner_display = f"@{username}" if username else "Berkitilgan"
 
-    group_name = getattr(chat, 'title', 'Nomaʼlum guruh')
-    if getattr(chat, 'username', None):
-        link = f"https://t.me/{chat.username}/{event.id}"
-        group_display = f"<a href='{link}'>{group_name}</a>"
-    else:
-        group_display = group_name
+        sender_id = getattr(sender, 'id', None)
+        profile_link = (
+            f"<a href='tg://user?id={sender_id}'>Profilga o‘tish</a>"
+            if sender_id else "Berkitilgan"
+        )
 
-    username = getattr(sender, 'username', None)
-    owner_display = f"@{username}" if username else "Berkitilgan"
+        phone = normalize_phone(sender.phone) if sender.phone else None
+        if not phone:
+            for m in PHONE_RE.finditer(text):
+                phone = normalize_phone(m.group(0))
+                if phone:
+                    break
 
-    sender_id = getattr(sender, 'id', None)
-    profile_link = (
-        f"<a href='tg://user?id={sender_id}'>Profilga o‘tish</a>"
-        if sender_id else "Berkitilgan"
-    )
+        phone_display = phone if phone else "Berkitilgan"
 
-    phone = normalize_phone(sender.phone) if sender.phone else None
-    if not phone and any(c.isdigit() for c in text):
-        for m in PHONE_RE.finditer(text):
-            phone = normalize_phone(m.group(0))
-            if phone:
-                break
+        message_text = (
+            f"🚖 <b>Yangi e’lon!</b>\n\n"
+            f"📝 <b>Matn:</b>\n{text}\n\n"
+            f"📍 <b>Guruh:</b> {group_display}\n\n"
+            f"👤 <b>Egasi:</b> {owner_display}\n\n"
+            f"📞 <b>Telefon:</b> {phone_display}\n\n"
+            f"🔗 <b>Profilga o'tish:</b> {profile_link}"
+        )
 
-    message = (
-        f"🚖 <b>Yangi e’lon!</b>\n\n"
-        f"📝 <b>Matn:</b>\n{text}\n\n"
-        f"📍 <b>Guruh:</b> {group_display}\n\n"
-        f"👤 <b>Egasi:</b> {owner_display}\n\n"
-        f"📞 <b>Telefon:</b> {phone or 'Berkitilgan'}\n\n"
-        f"🔗 <b>Profil:</b> {profile_link}"
-    )
+        for target_id in TARGET_CHAT_IDS:
+            await client.send_message(
+                target_id,
+                message_text,
+                parse_mode='html'
+            )
+            print(f"📨 Yuborildi → {target_id}")
 
-    await asyncio.gather(*(
-        client.send_message(tid, message, parse_mode='html')
-        for tid in TARGET_CHAT_IDS
-    ))
+    except Exception as e:
+        print("❌ Xatolik:", e)
 
-    print("📨 Yuborildi:", group_name)
 
-# =================== START ==========================
-print("🚀 Taxi bot ULTRA SUPER TEZ rejimda ishga tushdi...")
+# =================== START ===================
+print("🚕 Taxi bot ishga tushdi...")
 client.start()
 client.run_until_disconnected()
