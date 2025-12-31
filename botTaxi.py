@@ -54,7 +54,7 @@ KEYWORDS = [
     # ketadi
     'ketadi','ketvotti','ketishi kerak',
     'кетяпт','кетвотди','кетади','кетишади','кетиши керак', "1kishi ekan", "2kishi ekan", "3kishi ekan", "4kishi ekan",
-    "2 kishi ekan", "3 kishi ekan", "1 kishi ekan", "toshketga 1kishi", 
+    "2 kishi ekan", "3 kishi ekan", "1 kishi ekan", "toshketga 1kishi", "toshkenda odam bor",
 
     # dostavka
     'dastavka bor','dostavka bor','dastafka','dastafka bor',
