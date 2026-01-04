@@ -11,8 +11,7 @@ client = TelegramClient('taxi_session', api_id, api_hash)
 # =================== SKIP CHAT ID ===================
 SKIP_CHAT_IDS = [
     -1003398571650,
-    -1002963614686,
-    -5186043945
+    -1002963614686
 ]
 
 # =================== TARGET CHAT ID ===================
