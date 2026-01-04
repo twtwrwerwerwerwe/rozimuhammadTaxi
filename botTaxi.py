@@ -1,29 +1,26 @@
 import re
-import html
 import asyncio
 from telethon import TelegramClient, events
-from aiogram import Bot, Dispatcher, types, F
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
-# ================== TELETHON ==================
-API_ID = 28023612
-API_HASH = "fe94ef46addc1b6b8253d5448e8511f0'Y"
+# =================== TELEGRAM API ===================
+api_id = 28023612
+api_hash = 'fe94ef46addc1b6b8253d5448e8511f0'
 
-tg_client = TelegramClient("taxi_session", API_ID, API_HASH)
+client = TelegramClient('taxi_session', api_id, api_hash)
 
-# ================== BOT ==================
-BOT_TOKEN = "7990459607:AAHabwIyHWo5e01xfpP79vrL-RpNWm1OlyA'Y"
-bot = Bot(BOT_TOKEN)
-dp = Dispatcher()
-
-# ================== TARGET GURUH ==================
-FORWARD_GROUPS = [
+# =================== SKIP CHAT ID ===================
+SKIP_CHAT_IDS = [
     -1003398571650,
     -1002963614686
 ]
 
+# =================== TARGET CHAT ID ===================
+TARGET_CHAT_IDS = [
+    -1003398571650,
+    -1002963614686
+]
 
-# ================== FILTR ==================
+# =================== KALIT SO‘ZLAR ===================
 KEYWORDS = [
     # odam bor
     'odam bor','odambor','odam bor ekan','odam bor edi','odam borakan',
@@ -88,72 +85,89 @@ KEYWORDS = [
     'кетади', 'кетвотти', 'кетиши керак', "shopir kerak", "1kishi ayol kishili mashina kerak"
 ]
 
-PHONE_RE = re.compile(r'\+998\d{9}')
+KEYWORDS_RE = re.compile("|".join(re.escape(k) for k in KEYWORDS), re.IGNORECASE)
 
-def find_phone(text):
-    m = PHONE_RE.search(text)
-    return m.group(0) if m else "Berkitilgan"
+# =================== TELEFON REGEX ===================
+PHONE_RE = re.compile(r'(\+?998[\d\-\s\(\)]{9,15}|9\d{8})')
 
-# ================== TELETHON HANDLER ==================
-@tg_client.on(events.NewMessage(incoming=True))
-async def telethon_handler(event):
-    if not (event.is_group or event.is_channel):
-        return
 
-    text = event.raw_text
-    if not text or not KEYWORDS.search(text):
-        return
+def normalize_phone(raw):
+    digits = re.sub(r'\D', '', raw)
+    if digits.startswith('998') and len(digits) >= 12:
+        return '+' + digits[:12]
+    if len(digits) == 9:
+        return '+998' + digits
+    return None
 
-    chat = await event.get_chat()
-    sender = await event.get_sender()
 
-    phone = find_phone(text)
+# =================== HANDLER ===================
+@client.on(events.NewMessage(incoming=True))
+async def handler(event):
+    try:
+        # 🔥 FAQAT SEN ULANGAN GURUH VA KANALLAR
+        if not (event.is_group or event.is_channel):
+            return
 
-    # guruh linki
-    if getattr(chat, "username", None):
-        msg_link = f"https://t.me/{chat.username}/{event.id}"
-    else:
-        msg_link = f"https://t.me/c/{str(chat.id)[4:]}/{event.id}"
+        chat_id = event.chat_id
+        if chat_id in SKIP_CHAT_IDS:
+            return
 
-    # profil link
-    if sender.username:
-        profile_link = f"https://t.me/{sender.username}"
-    else:
-        profile_link = f"tg://user?id={sender.id}"
+        text = event.raw_text
+        if not text or not KEYWORDS_RE.search(text):
+            return
 
-    buttons = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="👤 Profil", url=profile_link)],
-        [InlineKeyboardButton(text="📨 Habar manzili", url=msg_link)],
-        [InlineKeyboardButton(text="✅ Qabul qildim", callback_data="accept")]
-    ])
-
-    message = (
-        "<b>🚖 Yangi buyurtma!</b>\n\n"
-        f"📝 <b>Matn:</b>\n{html.escape(text)}\n\n"
-        f"📞 <b>Raqam:</b> {phone}"
-    )
-
-    for gid in FORWARD_GROUPS:
-        await bot.send_message(
-            gid,
-            message,
-            reply_markup=buttons,
-            parse_mode="HTML"
+        chat, sender = await asyncio.gather(
+            event.get_chat(),
+            event.get_sender()
         )
 
-# ================== CALLBACK ==================
-@dp.callback_query(F.data == "accept")
-async def accept(cb: types.CallbackQuery):
-    await cb.message.edit_text(
-        cb.message.text + "\n\n✅ <i>Buyurtma qabul qilindi</i>",
-        parse_mode="HTML"
-    )
-    await cb.answer("Qabul qilindi")
+        group_name = getattr(chat, 'title', 'Nomaʼlum guruh')
+        if getattr(chat, 'username', None):
+            group_link = f"https://t.me/{chat.username}/{event.id}"
+            group_display = f"<a href='{group_link}'>{group_name}</a>"
+        else:
+            group_display = group_name
 
-# ================== RUN ==================
-async def main():
-    await tg_client.start()
-    await dp.start_polling(bot)
+        username = getattr(sender, 'username', None)
+        owner_display = f"@{username}" if username else "Berkitilgan"
 
-if __name__ == "__main__":
-    asyncio.run(main())
+        sender_id = getattr(sender, 'id', None)
+        profile_link = (
+            f"<a href='tg://user?id={sender_id}'>Profilga o‘tish</a>"
+            if sender_id else "Berkitilgan"
+        )
+
+        phone = normalize_phone(sender.phone) if sender.phone else None
+        if not phone:
+            for m in PHONE_RE.finditer(text):
+                phone = normalize_phone(m.group(0))
+                if phone:
+                    break
+
+        phone_display = phone if phone else "Berkitilgan"
+
+        message_text = (
+            f"🚖 <b>Yangi e’lon!</b>\n\n"
+            f"📝 <b>Matn:</b>\n{text}\n\n"
+            f"📍 <b>Guruh:</b> {group_display}\n\n"
+            f"👤 <b>Egasi:</b> {owner_display}\n\n"
+            f"📞 <b>Telefon:</b> {phone_display}\n\n"
+            f"🔗 <b>Profilga o'tish:</b> {profile_link}"
+        )
+
+        for target_id in TARGET_CHAT_IDS:
+            await client.send_message(
+                target_id,
+                message_text,
+                parse_mode='html'
+            )
+            print(f"📨 Yuborildi → {target_id}")
+
+    except Exception as e:
+        print("❌ Xatolik:", e)
+
+
+# =================== START ===================
+print("🚕 Taxi bot ishga tushdi...")
+client.start()
+client.run_until_disconnected()
