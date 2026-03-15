@@ -123,56 +123,67 @@ def normalize_phone(raw):
 async def handler(event):
     try:
         # 🔥 FAQAT SEN ULANGAN GURUH VA KANALLAR
-        if not (event.is_group or event.is_channel):
+        chat = await event.get_chat()
+        if not (getattr(chat, "megagroup", False) or getattr(chat, "broadcast", False)):
             return
 
-        chat_id = event.chat_id
-        if chat_id in SKIP_CHAT_IDS:
+        # 🔥 TEXT OLISH
+        text = event.raw_text or (getattr(event.message, 'message', '') or '')
+        if not text:
             return
 
-        text = event.raw_text
-        if not text or not KEYWORDS_RE.search(text):
+        # 🔥 KEYWORD TEKSHIRUVI
+        text_lower = text.lower()
+        if not any(k.lower() in text_lower for k in KEYWORDS):
             return
 
-        chat, sender = await asyncio.gather(
-            event.get_chat(),
-            event.get_sender()
-        )
-
-        group_name = getattr(chat, 'title', 'Nomaʼlum guruh')
-        if getattr(chat, 'username', None):
-            group_link = f"https://t.me/{chat.username}/{event.id}"
-            group_display = f"<a href='{group_link}'>{group_name}</a>"
-        else:
-            group_display = group_name
-
+        # 🔥 FOYDALANUVCHI MA'LUMOTLARI
+        sender = await event.get_sender()
         username = getattr(sender, 'username', None)
-        owner_display = f"@{username}" if username else "Berkitilgan"
+        first_name = getattr(sender, 'first_name', '')
+        last_name = getattr(sender, 'last_name', '')
+        
+        if username:
+            owner_display = f"@{username} ({first_name} {last_name})".strip()
+        else:
+            owner_display = f"{first_name} {last_name}".strip() or "Berkitilgan"
 
         sender_id = getattr(sender, 'id', None)
-        profile_link = (
-            f"<a href='tg://user?id={sender_id}'>Profilga o‘tish</a>"
-            if sender_id else "Berkitilgan"
-        )
+        profile_link = f"<a href='tg://user?id={sender_id}'>Profilga o'tish</a>" if sender_id else "Berkitilgan"
 
-        phone = normalize_phone(sender.phone) if sender.phone else None
+        # 🔥 TELEFON RAQAMI
+        phone = normalize_phone(getattr(sender, 'phone', None))
         if not phone:
             for m in PHONE_RE.finditer(text):
                 phone = normalize_phone(m.group(0))
                 if phone:
                     break
-
         phone_display = phone if phone else "Berkitilgan"
 
+        # 🔥 GURUH LINKI
+        if getattr(chat, 'username', None):
+            group_link = f"https://t.me/{chat.username}/{event.id}"
+        else:
+            # private supergroup link
+            group_link = f"https://t.me/c/{str(chat.id)[4:]}/{event.id}"
+
+        group_display = f"<a href='{group_link}'>Guruhga o'tish</a>"
+
+        # 🔥 XABAR TEXTI
         message_text = (
-            f"🚖 <b>N1 TAXI SIGNAL</b>\n\n"
-            f"📝 <b></b> {text}\n\n"
-            f"📍 <b>Guruh:</b> {group_display}\n\n"
-            f"👤 <b></b> {owner_display}\n\n"
-            f"📞 <b></b> {phone_display}\n\n"
-            f"🔗 <b></b> {profile_link}"
+            f"🔈 <b>Yangi elon!</b>\n\n"
+            f"📝 {text}\n\n"
+            f"_____________________\n"
+            f"📍 {group_display}\n"
+            f"_____________________\n"
+            f"👤 {owner_display}\n"
+            f"_____________________\n"
+            f"📞 {phone_display}\n"
+            f"_____________________\n"
+            f"🔗 {profile_link}"
         )
 
+        # 🔥 XABARNI TARGET GA YUBORISH
         for target_id in TARGET_CHAT_IDS:
             await client.send_message(
                 target_id,
