@@ -100,7 +100,9 @@ KEYWORDS = [
     "ким юряпти", "тошкентга кетаман", "бағдодга кетиши керак", "бағдодан 1киши бор", "боғдоддан 2киши",
     "qoqonga odam bor", "qoqondan odam bor", "ertagaga qoqonga 1kishi", "fargonadan 1kishi", 'fargonaga odam bor',
     "fargonaga kim yuryabdi", "fargonaga 2kishi", "қўқонга одам бор", "қўқондан одам бор", "эртагага қўқонга 1киши", "фарғонадан 1киши", 'фарғонага одам бор',
-    "фарғонага ким юряпти", "фарғонага 2киши"
+    "фарғонага ким юряпти", "фарғонага 2киши", "yurediganla bormi", "yuradiganla bormi", "yurediganlar bomi", "yurediganlar bormi",
+    "yuradiganlar bormi", "yurayotganlar bormi", "yurayotganlar bomi", "yurayotganla bormi", "yurayotganla bomi", "юредигaнла борми", "юрадиганла борми", "юредигaнлар боми", "юредигaнлар борми",
+"юрадиганлар борми", "юраётганлар борми", "юраётганлар боми", "юраётганла борми", "юраётганла боми"
 ]
 
 KEYWORDS_RE = re.compile("|".join(re.escape(k) for k in KEYWORDS), re.IGNORECASE)
