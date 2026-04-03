@@ -165,13 +165,13 @@ async def handler(event):
         phone_display = phone if phone else "Berkitilgan"
 
         message_text = (
-            f"🔈  <b>Yangi elon!</b>\n\n"
-            f"📝 <b></b> {text}\n\n"
-            f"📍  <b>Guruh:</b> {group_display}\n\n"
-            f"👤 <b></b> {owner_display}\n\n"
-            f"📞 <b></b> {phone_display}\n\n"
-            f"____________________________________\n\n"
-            f"👉 <b></b> {profile_link}"
+            f"🔈  <b>Elon topildi!</b>\n\n"
+            f"📝 <b>Matn : </b> {text}\n\n"
+            f"📍  <b>Guruh : </b> {group_display}\n\n"
+            f"👤 <b>User</b> {owner_display}\n\n"
+            f"📞 <b>Raqam</b> {phone_display}\n\n"
+            f"_______________________________\n\n"
+            f"👉 <b>Bosing</b> {profile_link}"
         )
 
         for target_id in TARGET_CHAT_IDS:
