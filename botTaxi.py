@@ -102,7 +102,7 @@ KEYWORDS = [
     "fargonaga kim yuryabdi", "fargonaga 2kishi", "қўқонга одам бор", "қўқондан одам бор", "эртагага қўқонга 1киши", "фарғонадан 1киши", 'фарғонага одам бор',
     "фарғонага ким юряпти", "фарғонага 2киши", "yurediganla bormi", "yuradiganla bormi", "yurediganlar bomi", "yurediganlar bormi",
     "yuradiganlar bormi", "yurayotganlar bormi", "yurayotganlar bomi", "yurayotganla bormi", "yurayotganla bomi", "юредигaнла борми", "юрадиганла борми", "юредигaнлар боми", "юредигaнлар борми",
-"юрадиганлар борми", "юраётганлар борми", "юраётганлар боми", "юраётганла борми", "юраётганла боми"
+    "юрадиганлар борми", "юраётганлар борми", "юраётганлар боми", "юраётганла борми", "юраётганла боми"
 ]
 
 KEYWORDS_RE = re.compile("|".join(re.escape(k) for k in KEYWORDS), re.IGNORECASE)
@@ -170,10 +170,10 @@ async def handler(event):
             f"🔈  <b>Elon topildi!</b>\n\n"
             f"📝 <b>Matn : </b> {text}\n\n"
             f"📍  <b>Guruh : </b> {group_display}\n\n"
-            f"👤 <b>User</b> {owner_display}\n\n"
-            f"📞 <b>Raqam</b> {phone_display}\n\n"
-            f"_______________________________\n\n"
-            f"👉 <b>Bosing</b> {profile_link}"
+            f"👤 <b>User : </b> {owner_display}\n\n"
+            f"📞 <b>Raqam : </b> {phone_display}\n\n"
+            f"_____________________________\n\n"
+            f"👉 <b></b> {profile_link}"
         )
 
         for target_id in TARGET_CHAT_IDS:
