@@ -172,7 +172,7 @@ async def handler(event):
             f"📍  <b>Guruh : </b> {group_display}\n\n"
             f"👤 <b>User : </b> {owner_display}\n\n"
             f"📞 <b>Raqam : </b> {phone_display}\n\n"
-            f"_____________________________\n\n"
+            f"___________________________\n\n"
             f"👉 <b></b> {profile_link}"
         )
 
