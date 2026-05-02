@@ -11,7 +11,8 @@ client = TelegramClient('taxi_session', api_id, api_hash)
 # =================== SKIP CHAT ID ===================
 SKIP_CHAT_IDS = [
     -1003398571650,
-    -1002963614686
+    -1002963614686,
+    -1003322681147
 ]
 
 # =================== TARGET CHAT ID ===================
@@ -172,7 +173,7 @@ async def handler(event):
             f"📍  <b>Guruh : </b> {group_display}\n\n"
             f"👤 <b>User : </b> {owner_display}\n\n"
             f"📞 <b>Raqam : </b> {phone_display}\n\n"
-            f"___________________________\n\n"
+            f"_________________________\n\n"
             f"👉 <b></b> {profile_link}"
         )
 
