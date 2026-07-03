@@ -123,8 +123,7 @@ KEYWORDS = [
     "kim yuryabdi", "toshkentga ketaman", "bagdodga ketishi kerak", "bagdodan 1kishi bor", "bog'doddan 2kishi", "yuk bor",
     "1 kiwi bor edi", "2 kiwi bor edi", "3 kiwi bor edi", "4 kiwi bor edi", "1 kishi bor edi", "2 kishi bor edi", "3 kishi bor edi", "4 kishi bor edi", 
     "1 kishi bor ekan", "2 kishi bor ekan", "3 kishi bor ekan", "4 kishi bor ekan", "1 kiwi bor ekan", "2 kiwi bor ekan", "3 kiwi bor ekan", "4 kiwi bor ekan",
-    "1 kishi bor edi", "2 kishi bor edi", "3 kishi bor akalar", "shopir kerak", "1 kishi bor akalar", "2 kishi bor akalar", "3 kishi bor akalar", "4 kishi bor akalar", "1 kiwi bor akalar", "2 kiwi bor akalar", "3 kiwi bor akalar", "4 kiwi bor akalar",
-    "1 kishi bor ekan akalar", "2 kishi bor ekan akalar"
+    "1 kishi bor edi", "2 kishi bor edi", "3 kishi bor akalar"
 ]
 
 KEYWORDS_RE = re.compile("|".join(re.escape(k) for k in KEYWORDS), re.IGNORECASE)
@@ -189,10 +188,10 @@ async def handler(event):
         phone_display = phone if phone else "Berkitilgan"
 
         message_text = (
-            f"🔈  <b>Yangi elon topildi!</b>\n\n"
+            f"🔈  <b>Yangi elon!</b>\n\n"
             f"📝  <b>Elon : </b> {text}\n\n"
-            f"📍  <b>Guruhdan : </b> {group_display}\n\n"
-            f"👤  <b>Foydalanuvchi : </b> {owner_display}\n\n"
+            f"📍  <b>Guruh : </b> {group_display}\n\n"
+            f"👤  <b>User : </b> {owner_display}\n\n"
             f"📞  <b>Raqam : </b> {phone_display}\n\n"
             f"_________________________\n\n"
             f"👉 <b></b> {profile_link}"
