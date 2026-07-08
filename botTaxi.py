@@ -122,7 +122,11 @@ KEYWORDS = [
     "4 odam bor", "2ta ayol bor", "katta yoshli ayol bor", "bir qiz bir bola bor", "srochni yuradigan taxi kerak",
     "kim yuryabdi", "toshkentga ketaman", "bagdodga ketishi kerak", "bagdodan 1kishi bor", "bog'doddan 2kishi", "yuk bor",
     "1 kiwi bor edi", "2 kiwi bor edi", "3 kiwi bor edi", "4 kiwi bor edi", "1 kishi bor edi", "2 kishi bor edi", "3 kishi bor edi", "4 kishi bor edi", 
-    "1 kishi bor ekan", "2 kishi bor ekan", "3 kishi bor ekan", "4 kishi bor ekan", "1 kiwi bor ekan", "2 kiwi bor ekan", "3 kiwi bor ekan", "4 kiwi bor ekan"
+    "1 kishi bor ekan", "2 kishi bor ekan", "3 kishi bor ekan", "4 kishi bor ekan", "1 kiwi bor ekan", "2 kiwi bor ekan", "3 kiwi bor ekan", "4 kiwi bor ekan",
+    "toshkentdan 1 kiwi bering deganga", "toshkentdan 2 kiwi bering deganga", "toshkentdan 3 kiwi bering deganga", "toshkentdan 4 kiwi bering deganga",
+    "toshkentdan 1 kishi bering deganga", "toshkentdan 2 kishi bering deganga", "toshkentdan 3 kishi bering deganga", "toshkentdan 4 kishi bering deganga",
+    "toshkentdan 1 kishi bering degan", "toshkentdan 2 kishi bering degan", "toshkentdan 3 kishi bering degan", "toshkentdan 4 kishi bering degan",
+    "toshkentdan 1 kiwi bering degan", "birinchi so'raganga"
 ]
 
 KEYWORDS_RE = re.compile("|".join(re.escape(k) for k in KEYWORDS), re.IGNORECASE)
