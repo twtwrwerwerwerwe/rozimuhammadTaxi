@@ -126,7 +126,7 @@ KEYWORDS = [
     "toshkentdan 1 kiwi bering deganga", "toshkentdan 2 kiwi bering deganga", "toshkentdan 3 kiwi bering deganga", "toshkentdan 4 kiwi bering deganga",
     "toshkentdan 1 kishi bering deganga", "toshkentdan 2 kishi bering deganga", "toshkentdan 3 kishi bering deganga", "toshkentdan 4 kishi bering deganga",
     "toshkentdan 1 kishi bering degan", "toshkentdan 2 kishi bering degan", "toshkentdan 3 kishi bering degan", "toshkentdan 4 kishi bering degan",
-    "toshkentdan 1 kiwi bering degan", "birinchi so'raganga"
+    "toshkentdan 1 kiwi bering degan", "birinchi so'raganga", "srochni kim yuryabdi"
 ]
 
 KEYWORDS_RE = re.compile("|".join(re.escape(k) for k in KEYWORDS), re.IGNORECASE)
